@@ -17,6 +17,11 @@ const io = socket(server);
 io.on("connection", function (socket) {
   console.log("Made socket connection");
 
+  socket.on("register", function (data) {
+    io.emit("register", data);
+    console.log(data);
+  });
+
   socket.on("message", function (data) {
     io.emit("message", data);
     console.log(data);
