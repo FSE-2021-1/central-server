@@ -44,13 +44,28 @@ io.on("connection", function (socket) {
       BASE_TOPIC + data.id,
       JSON.stringify({ local: data.local })
     );
-    esps.set(data.id, data);
+    const { input, output } = data;
+    esps.set(data.id, {
+      ...data,
+      input: { name: input, value: false },
+      output: { name: output, value: false },
+    });
     console.log(`ESP32: ${data.id} registered!`);
   });
 
   socket.on("req state", function (socketId) {
     console.log(`Front: ${socketId} requested state`);
     socket.emit("state", Array.from(esps.values()));
+  });
+
+  socket.on("push output state", function (id, value) {
+    const esp = esps.get(id);
+    esp.output.value = value;
+    clientMqtt.publish(
+      `fse2021/${MATRICULA}/${esp.local}/estado`,
+      JSON.stringify({ state: value })
+    );
+    esps.set(id, esp);
   });
 });
 
