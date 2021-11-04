@@ -47,8 +47,10 @@ io.on("connection", function (socket) {
     const { input, output } = data;
     esps.set(data.id, {
       ...data,
-      input: { name: input, value: false },
-      output: { name: output, value: false },
+      input: { name: input, value: 0 },
+      output: { name: output, value: 0 },
+      temperature: null,
+      humidity: null,
     });
     console.log(`ESP32: ${data.id} registered!`);
   });
