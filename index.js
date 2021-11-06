@@ -14,19 +14,18 @@ const PORT = 5005;
 const MATRICULA = "123456789";
 const BASE_TOPIC = `fse2021/${MATRICULA}/dispositivos/`;
 
-const BASE_TOPIC_REGEX = new RegExp(String.raw 
-  `^fse2021/${MATRICULA}/dispositivos/([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$`
+const BASE_TOPIC_REGEX = new RegExp(
+  String.raw`^fse2021/${MATRICULA}/dispositivos/([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$`
 );
 
 const TEMP_ESP_REGEX = new RegExp(
-  String.raw
-  `^fse2021/${MATRICULA}/([0-9a-zA-Z]+)/(temperatura|umidade)$`
+  String.raw`^fse2021/${MATRICULA}/([0-9a-zA-Z]+)/(temperatura|umidade|estado)$`
 );
 
 const MEASURES = {
-  "temperatura": "temperature",
-  "umidade": "humidity",
-}
+  temperatura: "temperature",
+  umidade: "humidity",
+};
 
 let esps = new PoweredMap();
 esps.setUpdateCallback(function () {
@@ -76,7 +75,7 @@ io.on("connection", function (socket) {
     esp.output.value = value;
     clientMqtt.publish(
       `fse2021/${MATRICULA}/${esp.local}/estado`,
-      JSON.stringify({ state: value })
+      JSON.stringify({ out: value })
     );
     esps.set(id, esp);
   });
@@ -102,11 +101,16 @@ clientMqtt.on("message", function (topic, message) {
     const measure = TEMP_ESP_REGEX.exec(topic)[2];
     Array.from(esps.values()).forEach((esp) => {
       if (esp.local === local) {
-        esp[MEASURES[measure]] = messageJson.value;
-        esps.set(esp.id, esp);
-        console.log(`ESP32: ${esp.id} updated!`);
+        if (measure === "estado") {
+          if (messageJson.hasOwnProperty("in")) {
+            esp.input.value = messageJson.in;
+          }
+        } else {
+          esp[MEASURES[measure]] = messageJson.value;
+          esps.set(esp.id, esp);
+          console.log(`ESP32: ${esp.id} updated!`);
+        }
       }
     });
   }
-
 });
