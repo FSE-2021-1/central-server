@@ -130,9 +130,9 @@ clientMqtt.on("message", function (topic, message) {
           }
         } else {
           esp[MEASURES[measure]] = messageJson.value;
-          esps.set(esp.id, esp);
-          console.log(`ESP32: ${esp.id} updated!`);
         }
+        esps.set(esp.id, esp);
+        console.log(`ESP32: ${esp.id} updated!`);
       }
     });
   }
