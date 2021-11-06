@@ -11,7 +11,7 @@ const app = express();
 app.use(cors());
 
 const PORT = 5005;
-const MATRICULA = "123456789";
+const MATRICULA = process.env.MATRICULA ?? "123456789";
 const BASE_TOPIC = `fse2021/${MATRICULA}/dispositivos/`;
 
 const BASE_TOPIC_REGEX = new RegExp(
@@ -28,8 +28,23 @@ const MEASURES = {
 };
 
 let esps = new PoweredMap();
+
+const processESP = () => {
+  const data = [];
+  const pending = [];
+  Array.from(esps.values()).forEach((esp) => {
+    if (esp.isPending) {
+      pending.push(esp);
+    } else {
+      data.push(esp);
+    }
+  });
+  return { data, pending };
+};
+
 esps.setUpdateCallback(function () {
-  io.emit("state", Array.from(esps.values()));
+  const { data, pending } = processESP();
+  io.emit("state", data, pending);
 });
 
 const server = app.listen(PORT, function () {
@@ -67,7 +82,8 @@ io.on("connection", function (socket) {
 
   socket.on("req state", function (socketId) {
     console.log(`Front: ${socketId} requested state`);
-    socket.emit("state", Array.from(esps.values()));
+    const { data, pending } = processESP();
+    socket.emit("state", data, pending);
   });
 
   socket.on("push output state", function (id, value) {
@@ -77,6 +93,14 @@ io.on("connection", function (socket) {
       `fse2021/${MATRICULA}/${esp.local}/estado`,
       JSON.stringify({ out: value })
     );
+    esps.set(id, esp);
+  });
+
+  socket.on("delete esp", function (id) {
+    const esp = esps.get(id);
+    clientMqtt.unsubscribe(`fse2021/${MATRICULA}/${esp.local}/+`);
+    clientMqtt.publish(BASE_TOPIC + id, JSON.stringify({ unregister: true }));
+    esp.isPending = true;
     esps.set(id, esp);
   });
 });
@@ -93,8 +117,7 @@ clientMqtt.on("message", function (topic, message) {
   let messageJson = JSON.parse(message.toString());
   if (BASE_TOPIC_REGEX.test(topic)) {
     if (Object(messageJson).hasOwnProperty("id")) {
-      esps.set(messageJson.id, messageJson);
-      io.emit("new esp", messageJson);
+      esps.set(messageJson.id, { ...messageJson, isPending: true });
     }
   } else if (TEMP_ESP_REGEX.test(topic)) {
     const local = TEMP_ESP_REGEX.exec(topic)[1];
