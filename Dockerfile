@@ -10,5 +10,4 @@ RUN npm install -g nodemon
 COPY . /app
 
 EXPOSE 5005
-# CMD [ "node", "index.js" ]
-CMD [ "nodemon", "index.js" ]
+CMD [ "node", "index.js" ]

@@ -5,7 +5,10 @@ const cors = require("cors");
 const PoweredMap = require("./poweredmap.js");
 
 var mqtt = require("mqtt");
-var clientMqtt = mqtt.connect("mqtt://broker-mosquitto");
+
+var clientMqtt = mqtt.connect(
+  process.env.BROKER_URL ?? "mqtt://broker-mosquitto"
+);
 
 const CSV = require("winston-csv-format").default;
 const { createLogger, transports } = require("winston");
