@@ -113,11 +113,33 @@ clientMqtt.on("connect", function () {
   });
 });
 
+setInterval(() => {
+  // check if espTimestamp is older than 1min
+  const shouldDelete = Array.from(esps.values).filter(
+    (esp) => esp.espTimestamp && Date.now() - esp.espTimestamp > 60000
+  );
+  // TODO delete power ESPs specially
+  shouldDelete.forEach((esp) => {
+    if (!esp.isPending) {
+      clientMqtt.unsubscribe(`fse2021/${MATRICULA}/${esp.local}/+`);
+      clientMqtt.publish(
+        BASE_TOPIC + esp.id,
+        JSON.stringify({ unregister: true })
+      );
+    }
+    esps.delete(esp.id);
+  });
+}, 5000);
+
 clientMqtt.on("message", function (topic, message) {
   let messageJson = JSON.parse(message.toString());
   if (BASE_TOPIC_REGEX.test(topic)) {
     if (Object(messageJson).hasOwnProperty("id")) {
-      esps.set(messageJson.id, { ...messageJson, isPending: true });
+      esps.set(messageJson.id, {
+        ...messageJson,
+        isPending: true,
+        espTimestamp: Date.now(),
+      });
     }
   } else if (TEMP_ESP_REGEX.test(topic)) {
     const local = TEMP_ESP_REGEX.exec(topic)[1];
@@ -131,6 +153,7 @@ clientMqtt.on("message", function (topic, message) {
         } else {
           esp[MEASURES[measure]] = messageJson.value;
         }
+        esp.espTimestamp = Date.now();
         esps.set(esp.id, esp);
         console.log(`ESP32: ${esp.id} updated!`);
       }
