@@ -184,8 +184,9 @@ io.on("connection", function (socket) {
       topic: "delete esp",
       description: "Sending unregister message to ESP@" + id,
     });
-    esp.isPending = true;
-    esps.set(id, esp);
+    // esp.isPending = false;
+    // esps.set(id, esp);
+    esps.delete(id);
   });
 });
 
