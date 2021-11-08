@@ -184,11 +184,22 @@ io.on("connection", function (socket) {
       topic: "delete esp",
       description: "Sending unregister message to ESP@" + id,
     });
-    // esp.isPending = false;
-    // esps.set(id, esp);
     esps.delete(id);
   });
+
+  socket.on("alarm", function (state) {
+    logger.log("info", {
+      created: new Date(),
+      origin: "client",
+      destination: "central-server",
+      topic: "alarm",
+      description: state ? "Alarm is activated" : "Alarm desactivated",
+    });
+  });
 });
+
+
+
 
 clientMqtt.on("connect", function () {
   logger.log("info", {
